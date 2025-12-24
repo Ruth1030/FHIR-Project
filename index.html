@@ -4,36 +4,62 @@
     <meta charset="UTF-8" />
     <title>Example SMART App</title>
     <script src="https://cdn.jsdelivr.net/npm/fhirclient/build/fhir-client.js"></script>
+    <style>
+        /* 簡單的樣式設定，讓顯示的 JSON 資料比較好閱讀 */
+        #patient, #meds {
+            font-family: Monaco, monospace;
+            white-space: pre;
+            font-size: 13px;
+            height: 30vh;
+            overflow: scroll;
+            border: 1px solid #CCC;
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>我的醫療管理系統</h1>
-    <div id="my-display-area">資料讀取中...</div>
+    <h4>Current Patient (目前病人資料)</h4>
+    <div id="patient">Loading...</div>
+    <br/>
+    <h4>Medications (用藥紀錄)</h4>
+    <div id="meds">Loading...</div>
 
-    <script>
-        // 等待 SMART 授權握手完成
-        FHIR.oauth2.ready()
-            .then(function(client) {
-                // ★ 成功！這裡就是「正式開始」的地方 ★
-                
-                // client 就是您的通行證，用它來抓資料
-                console.log("握手成功，目前的病人 ID 是:", client.patient.id);
+    <script type="text/javascript">
+        // 等待 OAuth2 授權完成
+        FHIR.oauth2.ready().then(function(client) {
+            
+            // 1. 讀取並顯示病人基本資料 (Patient Resource)
+            client.patient.read().then(
+                function(pt) {
+                    document.getElementById("patient").innerText = JSON.stringify(pt, null, 4);
+                },
+                function(error) {
+                    document.getElementById("patient").innerText = error.stack;
+                }
+            );
 
-                // 範例：抓取病人基本資料
-                client.patient.read().then(function(patientData) {
-                    // 把資料交給您的顯示邏輯
-                    console.log(patientData);
-                    // 這裡可以呼叫您自己寫的 UI 更新函式，例如：
-                    // updateMyUI(patientData); 
-                });
-
-                // 範例：抓取其他的 FHIR 資源 (例如: Observation)
-                // client.request("Observation?patient=" + client.patient.id)...
+            // 2. 讀取並顯示該病人的用藥請求 (MedicationRequest)
+            // 使用 client.patient.id 來過濾屬於該病人的資料
+            client.request("/MedicationRequest?patient=" + client.patient.id, {
+                resolveReferences: [ "medicationReference" ],
+                graph: true
             })
-            .catch(function(error) {
-                // 失敗處理
-                console.error("連線失敗:", error);
-            });
+            .then(function(data) {
+                if (!data.entry || !data.entry.length) {
+                    throw new Error("No medications found for the selected patient");
+                }
+                return data.entry;
+            })
+            .then(
+                function(meds) {
+                    document.getElementById("meds").innerText = JSON.stringify(meds, null, 4);
+                },
+                function(error) {
+                    document.getElementById("meds").innerText = error.stack;
+                }
+            );
+            
+        }).catch(console.error);
     </script>
-</body>
 </body>
 </html>
