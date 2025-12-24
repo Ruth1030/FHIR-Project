@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Launch My APP</title>
+    <script src="https://cdn.jsdelivr.net/npm/fhirclient/build/fhir-client.js"></script>
+</head>
+<body>
+    <script>
+        FHIR.oauth2.authorize({
+            // 客戶端 ID，在 Sandbox 測試時通常可設為任意字串，此處沿用教學範例
+            clientId: "my_web_app",
+            // 請求的權限範圍：啟動權限、身分資訊、FHIR 使用者資訊、讀取該病人的所有資料
+            scope: "launch openid fhirUser patient/*.read",
+            // 授權成功後要導向的主程式頁面
+            redirectUri: "index.html"
+        });
+    </script>
+</body>
+</html>
